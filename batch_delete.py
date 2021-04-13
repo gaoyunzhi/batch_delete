@@ -211,54 +211,29 @@ async def dialogs(user='lani'):
         print(group.title, group.entity.participants_count, group.id, username)
     await client.disconnect()
 
-async def getMember():
-    user = 'lani'
-    setting = S.credential['users'][user]
-    client = TelegramClient('session_file_' + user, S.credential['api_id'], S.credential['api_hash'])
-    await client.start(password=setting.get('password'))
-    group = await client.get_entity('https://t.me/brewnote2019') # 1177113440
+async def batchDelete(group):
+    user = credential['user']
+    client = TelegramClient('session_file_' + user['name'], 
+        credential['api_id'], credential['api_hash'])
+    await client.start(password=user['password'])
+    group = await client.get_entity(credential['delete_target_group'])
     print(group.id)
-    participants = await client(GetParticipantsRequest(
-        group, ChannelParticipantsSearch('jvsdn'), 0, 100, 0
+    backup_group = await client.get_entity(credential['backup_group'])
+    filter = InputMessagesFilterEmpty()
+    result = await client(SearchRequest(
+        peer=group,     # On which chat/conversation
+        q='',           # What to search for
+        filter=filter,  # Filter to use (maybe filter for media)
+        min_date=None,  # Minimum date
+        max_date=None,  # Maximum date
+        offset_id=0,    # ID of the message to use as offset
+        add_offset=0,   # Additional offset
+        limit=1000,       # How many results
+        max_id=0,       # Maximum message ID
+        min_id=0,       # Minimum message ID
+        from_id=0,
+        hash=0
     ))
-    for user in participants.users:
-        print(user)
-        print(user.id) # 788216831
-
-async def run():
-    client_name = 'lani'
-    setting = S.credential['users'][client_name]
-    client = TelegramClient('session_file_' + client_name, S.credential['api_id'], S.credential['api_hash'])
-    await client.start(password=setting.get('password'))
-    result = await client.get_dialogs()
-    user = await client.get_entity(search_user_id)
-
-    forward_group = await C.get_entity(client, S.credential['info_log'])
-    for item in result:
-        group = await client.get_entity(item.id)
-        filter = InputMessagesFilterEmpty()
-        try:
-            result = await client(SearchRequest(
-                peer=group,     # On which chat/conversation
-                q='',           # What to search for
-                filter=filter,  # Filter to use (maybe filter for media)
-                min_date=None,  # Minimum date
-                max_date=None,  # Maximum date
-                offset_id=0,    # ID of the message to use as offset
-                add_offset=0,   # Additional offset
-                limit=1000,       # How many results
-                max_id=0,       # Maximum message ID
-                min_id=0,       # Minimum message ID
-                from_id=user,
-                hash=0
-            ))
-        except:
-            continue
-        username = None
-        try:
-            username = group.username
-        except:
-            ...
         for message in result.messages:
             try:
                 await client.forward_messages(forward_group, message.id, group)
@@ -272,5 +247,5 @@ async def run():
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    r = loop.run_until_complete(run())
+    r = loop.run_until_complete(batchDelete())
     loop.close()
