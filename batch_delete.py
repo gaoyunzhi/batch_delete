@@ -5,35 +5,28 @@ from telethon import TelegramClient
 from telethon.tl.functions.messages import SearchRequest
 from telethon.tl.types import InputMessagesFilterEmpty
 import asyncio
-from settings import Settings
+import yaml
 
 with open('credential') as f:
     credential = yaml.load(f, Loader=yaml.FullLoader)
 
-async def batchDelete(group):
+async def batchDelete(limit=40):
     user = credential['user']
     client = TelegramClient('session_file_' + user['name'], 
         credential['api_id'], credential['api_hash'])
     await client.start(password=user['password'])
+    await client.get_dialogs()
     group = await client.get_entity(credential['delete_target_group'])
-    print(group.id)
     backup_group = await client.get_entity(credential['backup_group'])
-    filter = InputMessagesFilterEmpty()
-    result = await client(SearchRequest(
-        peer=group,     # On which chat/conversation
-        q=credential['search_query'], # What to search for
-        filter=filter,  # Filter to use (maybe filter for media)
-        min_date=None,  # Minimum date
-        max_date=None,  # Maximum date
-        offset_id=0,    # ID of the message to use as offset
-        add_offset=0,   # Additional offset
-        limit=1000,       # How many results
-        max_id=0,       # Maximum message ID
-        min_id=0,       # Minimum message ID
-        from_id=0,
-        hash=0
-    ))
-    for message in result.messages:
+    result = await client.get_messages(group, 
+        search=credential['search_query'], limit=1000)
+    if len(result) > limit:
+        print('too manay messages to delete:', len(result))
+        await client.disconnect()
+        return
+    for message in result:
+        if credential['search_query'] not in message.raw_text:
+            continue
         await client.forward_messages(backup_group, message.id, group)
         await client.delete_messages(group, message.id) # not working for media group yet
     await client.disconnect()
