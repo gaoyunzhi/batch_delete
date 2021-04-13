@@ -10,7 +10,7 @@ import yaml
 with open('credential') as f:
     credential = yaml.load(f, Loader=yaml.FullLoader)
 
-async def batchDelete(limit=40):
+async def batchDelete(limit=50):
     user = credential['user']
     client = TelegramClient('session_file_' + user['name'], 
         credential['api_id'], credential['api_hash'])
